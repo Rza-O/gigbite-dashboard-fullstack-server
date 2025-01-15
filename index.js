@@ -41,8 +41,29 @@ async function run() {
       app.post('/jwt', (req, res) => {
          const user = req.body;
          const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '6h' });
-         res.send({token});
+         console.log(token)
+         res.send({ token });
       })
+
+      // verify token middleware
+      const verifyToken = async (req, res, next) => {
+         console.log('inside middleware', req.headers.authorization);
+         if (!req.headers.authorization) {
+            return res.status(403).send({message: 'Forbidden Access'})
+         }
+         const token = req.headers.authorization.split(' ')[1];
+         if (!token) {
+            return res.status(400).send({ message: 'Bad Request' })
+         }
+         jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (error, decoded) => {
+            if (error) {
+               return res.status(401).send({message: "Unauthorized Access"})
+            }
+            req.decoded = decoded;
+            next()
+         }
+         )
+      }
 
 
       // posting single user data to the db if doesn't exist
@@ -60,7 +81,7 @@ async function run() {
       })
 
       // Getting user role
-      app.get('/user/role/:email', async (req, res) => {
+      app.get('/user/role/:email', verifyToken,async (req, res) => {
          const { email } = req.params;
          const result = await usersCollections.findOne({ email });
          res.send({ role: result?.role });
