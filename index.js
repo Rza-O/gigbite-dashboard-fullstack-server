@@ -1,5 +1,4 @@
 require('dotenv').config();
-const cookieParser = require('cookie-parser');
 const express = require('express');
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const jwt = require('jsonwebtoken');
@@ -11,7 +10,6 @@ const port = process.env.PORT || 8000;
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(cookieParser());
 app.use(morgan('dev'));
 
 // MONGODB starts here
@@ -39,18 +37,33 @@ async function run() {
       })
 
 
+      // jwt related api
+      app.post('/jwt', (req, res) => {
+         const user = req.body;
+         const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '6h' });
+         res.send({token});
+      })
+
+
       // posting single user data to the db if doesn't exist
       app.post('/users/:email', async (req, res) => {
          const user = req.body;
          const { email } = req.params;
          const defaultCoin = req.body.role === 'worker' ? 10 : 50;
-         const userData = {...user, coin: defaultCoin}
+         const userData = { ...user, coin: defaultCoin }
          const isExist = await usersCollections.findOne({ email })
          if (isExist) {
             return res.send({ message: 'User already exists' });
          }
          const result = await usersCollections.insertOne(userData);
          res.send(result);
+      })
+
+      // Getting user role
+      app.get('/user/role/:email', async (req, res) => {
+         const { email } = req.params;
+         const result = await usersCollections.findOne({ email });
+         res.send({ role: result?.role });
       })
 
 
