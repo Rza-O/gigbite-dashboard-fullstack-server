@@ -40,17 +40,16 @@ async function run() {
 
 
       // posting single user data to the db if doesn't exist
-      app.post('/users', async (req, res) => {
-         const userData = req.body;
-         console.log('full data->', userData)
-         const email = userData.email
-         console.log('email we are looking-> email')
+      app.post('/users/:email', async (req, res) => {
+         const user = req.body;
+         const { email } = req.params;
+         const defaultCoin = req.body.role === 'worker' ? 10 : 50;
+         const userData = {...user, coin: defaultCoin}
          const isExist = await usersCollections.findOne({ email })
          if (isExist) {
             return res.send({ message: 'User already exists' });
          }
          const result = await usersCollections.insertOne(userData);
-         console.log('result: ', result)
          res.send(result);
       })
 
