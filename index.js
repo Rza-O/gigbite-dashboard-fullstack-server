@@ -41,7 +41,6 @@ async function run() {
       app.post('/jwt', (req, res) => {
          const user = req.body;
          const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '6h' });
-         console.log(token)
          res.send({ token });
       })
 
@@ -52,7 +51,6 @@ async function run() {
             return res.status(403).send({message: 'Forbidden Access'})
          }
          const token = req.headers.authorization.split(' ')[1];
-         console.log(token)
          if (!token) {
             return res.status(400).send({ message: 'Bad Request' })
          }
@@ -86,6 +84,14 @@ async function run() {
          const { email } = req.params;
          const result = await usersCollections.findOne({ email });
          res.send({ role: result?.role });
+      })
+
+      // getting specific user data 
+      // TODO: Add admin verification here
+      app.get('/user/:email', verifyToken, async (req, res) => {
+         const { email } = req.params;
+         const result = await usersCollections.findOne({ email });
+         res.send(result);
       })
 
 
