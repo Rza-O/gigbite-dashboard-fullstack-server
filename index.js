@@ -137,8 +137,18 @@ async function run() {
       // 
       app.delete('/task/:id', verifyToken, async (req, res) => {
          const { id } = req.params;
+         const { email } = req.decoded;
          const filter = { _id: new ObjectId(id) };
+         const taskData = await tasksCollections.findOne(filter);
+         console.log(taskData)
+         const totalCost = taskData.totalCost;
+         console.log(totalCost)
+         const updateCoin = await usersCollections.updateOne({ email }, {
+            $inc: {coin: totalCost}
+         })
+         console.log(updateCoin)
          const result = await tasksCollections.deleteOne(filter);
+         console.log(result)
          res.send(result);
       })
 
