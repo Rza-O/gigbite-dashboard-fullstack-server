@@ -112,6 +112,13 @@ async function run() {
          res.send(result)
       })
 
+      // getting all tasks added by a single user
+      app.get('/tasks/:email', verifyToken, async (req, res) => {
+         const { email } = req.params;
+         const result = await tasksCollections.find({ email }).toArray();
+         res.send(result);
+      })
+
 
 
       // Connect the client to the server	(optional starting in v4.7)
