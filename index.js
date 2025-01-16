@@ -175,12 +175,22 @@ async function run() {
       app.post('/work-submit', verifyToken, async (req, res) => {
          const submissionData = req.body;
          const { taskId } = submissionData;
-         const option = {_id: new ObjectId(taskId)}
+         const option = { _id: new ObjectId(taskId) }
          const workerDecrement = await tasksCollections.updateOne(option, {
             $inc: { required_workers: -1 }
          });
          console.log(workerDecrement)
          const result = await submissionsCollections.insertOne(submissionData);
+         res.send(result);
+      })
+
+      // Getting all the submissions made by a user
+      // 
+      app.get('/my-submissions/:email', verifyToken, async (req, res) => {
+         const { email } = req.params;
+         const filter = { worker_email: email };
+         const result = await submissionsCollections.find(filter).toArray();
+         console.log(result)
          res.send(result);
       })
 
