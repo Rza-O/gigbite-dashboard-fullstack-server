@@ -133,6 +133,15 @@ async function run() {
          res.send(result);
       })
 
+      // delete a task 
+      // 
+      app.delete('/task/:id', verifyToken, async (req, res) => {
+         const { id } = req.params;
+         const filter = { _id: new ObjectId(id) };
+         const result = await tasksCollections.deleteOne(filter);
+         res.send(result);
+      })
+
 
 
       // Connect the client to the server	(optional starting in v4.7)
