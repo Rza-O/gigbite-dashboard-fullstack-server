@@ -100,8 +100,14 @@ async function run() {
       // task related apis
 
       // add task api
-      app.get('/task', async (req, res) => {
+      // TODO: add buyer verification middleware
+      app.post('/task', verifyToken,async (req, res) => {
          const taskInfo = req.body;
+         const email = req.decoded.email;
+         const filter = { email };
+         await usersCollections.updateOne(filter, {
+            $inc: {coin: -taskInfo.totalCost}
+         })
          const result = await tasksCollections.insertOne(taskInfo);
          res.send(result)
       })
