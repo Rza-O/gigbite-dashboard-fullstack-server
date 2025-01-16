@@ -113,9 +113,11 @@ async function run() {
       })
 
       // getting all tasks added by a single user
+      // TODO: add buyer middleware
       app.get('/tasks/:email', verifyToken, async (req, res) => {
          const { email } = req.params;
-         const result = await tasksCollections.find({ email }).toArray();
+         const filter = {'buyer.buyer_email' : email}
+         const result = await tasksCollections.find(filter).toArray();
          res.send(result);
       })
 
