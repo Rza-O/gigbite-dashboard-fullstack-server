@@ -112,6 +112,12 @@ async function run() {
          res.send(result)
       })
 
+      // get all tasks where required worker gt 1
+      app.get('/tasks', verifyToken, async (req, res) => {
+         const result = await tasksCollections.find({ required_workers: { $gt: 0 } }).toArray();
+         res.send(result);
+      })
+
       // getting all tasks added by a single user
       // TODO: add buyer middleware
       app.get('/tasks/:email', verifyToken, async (req, res) => {
@@ -133,8 +139,9 @@ async function run() {
          res.send(result);
       })
 
-      // delete a task 
-      // 
+      // delete a task
+      // TODO: have to implement coin for already submitted works
+      // TODO: Add buyer and admin middleware
       app.delete('/task/:id', verifyToken, async (req, res) => {
          const { id } = req.params;
          const { email } = req.decoded;
