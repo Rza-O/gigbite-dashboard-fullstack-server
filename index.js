@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const morgan = require('morgan');
@@ -118,6 +118,18 @@ async function run() {
          const { email } = req.params;
          const filter = {'buyer.buyer_email' : email}
          const result = await tasksCollections.find(filter).toArray();
+         res.send(result);
+      })
+
+      // update a single task
+      // 
+      app.patch('/task/:id', verifyToken, async (req, res) => {
+         const { id } = req.params;
+         const filter = { _id: new ObjectId('id') };
+         const updateData = req.body;
+         const result = await tasksCollections.updateOne(filter, {
+            $set: updateData
+         })
          res.send(result);
       })
 
