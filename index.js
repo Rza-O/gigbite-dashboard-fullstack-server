@@ -185,12 +185,21 @@ async function run() {
       })
 
       // Getting all the submissions made by a user
-      // 
+      // TODO: add worker middleware
       app.get('/my-submissions/:email', verifyToken, async (req, res) => {
          const { email } = req.params;
          const filter = { worker_email: email };
          const result = await submissionsCollections.find(filter).toArray();
          console.log(result)
+         res.send(result);
+      })
+
+      // Getting all submission for a buyers work
+      // TODO: add buyer middleware
+      app.get('/my-work/submissions/:email', verifyToken, async (req, res) => {
+         const { email } = req.params;
+         const filter = { buyer_email: email };
+         const result = await submissionsCollections.find(filter).toArray();
          res.send(result);
       })
 
