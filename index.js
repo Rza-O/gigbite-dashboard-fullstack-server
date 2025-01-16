@@ -122,10 +122,10 @@ async function run() {
       })
 
       // update a single task
-      // 
+      // TODO: Add buyer middleware
       app.patch('/task/:id', verifyToken, async (req, res) => {
          const { id } = req.params;
-         const filter = { _id: new ObjectId('id') };
+         const filter = { _id: new ObjectId(id) };
          const updateData = req.body;
          const result = await tasksCollections.updateOne(filter, {
             $set: updateData
