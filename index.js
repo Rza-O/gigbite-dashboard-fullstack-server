@@ -31,6 +31,7 @@ async function run() {
 
       const usersCollections = client.db('GigBite').collection('users');
       const tasksCollections = client.db('GigBite').collection('tasks');
+      const submissionsCollections = client.db('GigBite').collection('submissions');
 
       app.get('/users', async (req, res) => {
          const result = await usersCollections.find().toArray();
@@ -49,7 +50,7 @@ async function run() {
       const verifyToken = async (req, res, next) => {
          console.log('inside middleware', req.headers.authorization);
          if (!req.headers.authorization) {
-            return res.status(403).send({message: 'Forbidden Access'})
+            return res.status(403).send({ message: 'Forbidden Access' })
          }
          const token = req.headers.authorization.split(' ')[1];
          if (!token) {
@@ -57,7 +58,7 @@ async function run() {
          }
          jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (error, decoded) => {
             if (error) {
-               return res.status(401).send({message: "Unauthorized Access"})
+               return res.status(401).send({ message: "Unauthorized Access" })
             }
             req.decoded = decoded;
             next()
@@ -81,7 +82,7 @@ async function run() {
       })
 
       // Getting user role
-      app.get('/user/role/:email', verifyToken,async (req, res) => {
+      app.get('/user/role/:email', verifyToken, async (req, res) => {
          const { email } = req.params;
          const result = await usersCollections.findOne({ email });
          const role = result?.role
@@ -101,20 +102,30 @@ async function run() {
 
       // add task api
       // TODO: add buyer verification middleware
-      app.post('/task', verifyToken,async (req, res) => {
+      app.post('/task', verifyToken, async (req, res) => {
          const taskInfo = req.body;
          const email = req.decoded.email;
          const filter = { email };
          await usersCollections.updateOne(filter, {
-            $inc: {coin: -taskInfo.totalCost}
+            $inc: { coin: -taskInfo.totalCost }
          })
          const result = await tasksCollections.insertOne(taskInfo);
          res.send(result)
       })
 
       // get all tasks where required worker gt 1
+      // TODO: add worker middleware
       app.get('/tasks', verifyToken, async (req, res) => {
          const result = await tasksCollections.find({ required_workers: { $gt: 0 } }).toArray();
+         res.send(result);
+      })
+
+      // getting single task details by id
+      // add worker middleware
+      app.get('/task/:id', async (req, res) => {
+         const { id } = req.params;
+         const filter = { _id: new ObjectId(id) };
+         const result = await tasksCollections.findOne(filter);
          res.send(result);
       })
 
@@ -122,7 +133,7 @@ async function run() {
       // TODO: add buyer middleware
       app.get('/tasks/:email', verifyToken, async (req, res) => {
          const { email } = req.params;
-         const filter = {'buyer.buyer_email' : email}
+         const filter = { 'buyer.buyer_email': email }
          const result = await tasksCollections.find(filter).toArray();
          res.send(result);
       })
@@ -151,13 +162,28 @@ async function run() {
          const totalCost = taskData.totalCost;
          console.log(totalCost)
          const updateCoin = await usersCollections.updateOne({ email }, {
-            $inc: {coin: totalCost}
+            $inc: { coin: totalCost }
          })
          console.log(updateCoin)
          const result = await tasksCollections.deleteOne(filter);
          console.log(result)
          res.send(result);
       })
+
+      // Submission save to the database
+      // TODO: ADD worker middleware
+      app.post('/work-submit', verifyToken, async (req, res) => {
+         const submissionData = req.body;
+         const { taskId } = submissionData;
+         const option = {_id: new ObjectId(taskId)}
+         const workerDecrement = await tasksCollections.updateOne(option, {
+            $inc: { required_workers: -1 }
+         });
+         console.log(workerDecrement)
+         const result = await submissionsCollections.insertOne(submissionData);
+         res.send(result);
+      })
+
 
 
 
