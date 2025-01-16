@@ -30,6 +30,7 @@ async function run() {
    try {
 
       const usersCollections = client.db('GigBite').collection('users');
+      const tasksCollections = client.db('GigBite').collection('tasks');
 
       app.get('/users', async (req, res) => {
          const result = await usersCollections.find().toArray();
@@ -83,7 +84,8 @@ async function run() {
       app.get('/user/role/:email', verifyToken,async (req, res) => {
          const { email } = req.params;
          const result = await usersCollections.findOne({ email });
-         res.send({ role: result?.role });
+         const role = result?.role
+         res.send(role);
       })
 
       // getting specific user data 
@@ -92,6 +94,16 @@ async function run() {
          const { email } = req.params;
          const result = await usersCollections.findOne({ email });
          res.send(result);
+      })
+
+
+      // task related apis
+
+      // add task api
+      app.get('/task', async (req, res) => {
+         const taskInfo = req.body;
+         const result = await tasksCollections.insertOne(taskInfo);
+         res.send(result)
       })
 
 
