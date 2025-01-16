@@ -198,9 +198,47 @@ async function run() {
       // TODO: add buyer middleware
       app.get('/my-work/submissions/:email', verifyToken, async (req, res) => {
          const { email } = req.params;
-         const filter = { buyer_email: email };
+         const filter = { buyer_email: email, status: 'pending' };
          const result = await submissionsCollections.find(filter).toArray();
          res.send(result);
+      })
+
+      // Changing status to approved and rejected
+      // TODO: Add Buyer middleWare
+      app.patch('/submission/status/:id', verifyToken, async (req, res) => {
+         const { status } = req.body;
+         const { id } = req.params;
+         const filter = { _id: new ObjectId(id) };
+
+         // find the doc to update
+         const submissionData = await submissionsCollections.findOne(filter);
+         // now change the total cost, add coin and status change if status is 'approved'
+         if (submissionData) {
+            const { taskId, payable_amount, worker_email } = submissionData;
+            // update status in the submission collection
+            await submissionsCollections.updateOne(filter, {
+               $set: { status }
+            })
+            if (status === 'approved') {
+               // decreasing the total cost so that when task deleted i can easily add the total cost back to the buyer coin
+               await tasksCollections.updateOne(
+                  { _id: new ObjectId(taskId) },
+                  { $inc: { totalCost: -payable_amount } }
+               );
+               // adding the payable coin to the worker total coin
+               await usersCollections.updateOne(
+                  { email: worker_email },
+                  { $inc: { coin: payable_amount } }
+               );
+            } else if (status === 'rejected') {
+               // increasing required worker by 1 in task collection
+               await tasksCollections.updateOne(
+                  { _id: new ObjectId(taskId) },
+                  { $inc: { required_workers: 1 } }
+               )
+            }
+         }
+         res.send({message: 'Submission status updated'})
       })
 
 
