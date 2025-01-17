@@ -284,9 +284,14 @@ async function run() {
       })
 
       // posting withdrawal request
-      // TODO: add admin middleware
-      app.post('/withdrawals', verifyToken, async (req, res) => {
+      // TODO: add worker middleware
+      app.post('/withdrawals/:email', verifyToken, async (req, res) => {
          const withdrawalData = req.body;
+         const { email } = req.params;
+         const increaseCoin = await usersCollections.updateOne({ email }, {
+            $inc: { coin: -withdrawalData.withdrawal_coin }
+         })
+         console.log(increaseCoin)
          const result = await withdrawalsCollections.insertOne(withdrawalData);
          res.send(result);
       })
