@@ -163,9 +163,9 @@ async function run() {
             taskId: id,
             status: 'pending'
          })
-         
+
          if (pendingSubmission) {
-            return res.status(400).send({ message: 'Please review all submissions related to this task before deleting'})
+            return res.status(400).send({ message: 'Please review all submissions related to this task before deleting' })
          }
 
          const taskData = await tasksCollections.findOne(filter);
@@ -249,9 +249,37 @@ async function run() {
                )
             }
          }
-         res.send({message: 'Submission status updated'})
+         res.send({ message: 'Submission status updated' })
       })
 
+      // Getting worker dashboard stats
+      // TODO: add worker middleware
+      app.get('/worker-dashboard/stats/:email', verifyToken, async (req, res) => {
+         const { email } = req.params;
+         const totalSubmission = await submissionsCollections.countDocuments({ worker_email: email });
+         const pendingSubmission = await submissionsCollections.countDocuments({
+            worker_email: email,
+            status: 'pending',
+         });
+         const totalEarningsData = await submissionsCollections.aggregate([
+            { $match: { worker_email: email, status: 'approved' } },
+            { $group: { _id: null, totalEarnings: { $sum: '$payable_amount' } } },
+         ]).toArray();
+         const totalEarnings = totalEarningsData[0]?.totalEarnings || 0;
+         res.send({
+            totalSubmission,
+            pendingSubmission,
+            totalEarnings
+         })
+      })
+
+
+      // getting all the submission that only is approved
+      app.get('/approved-submission/:email', verifyToken, async (req, res) => {
+         const { email } = req.params;
+         const result = await submissionsCollections.find({ worker_email: email, status: 'approved' }).toArray();
+         res.send(result);
+      })
 
 
 
