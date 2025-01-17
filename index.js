@@ -32,6 +32,7 @@ async function run() {
       const usersCollections = client.db('GigBite').collection('users');
       const tasksCollections = client.db('GigBite').collection('tasks');
       const submissionsCollections = client.db('GigBite').collection('submissions');
+      const withdrawalsCollections = client.db('GigBite').collection('withdrawals');
 
       app.get('/users', async (req, res) => {
          const result = await usersCollections.find().toArray();
@@ -275,9 +276,18 @@ async function run() {
 
 
       // getting all the submission that only is approved
+      // TODO: add worker middleware
       app.get('/approved-submission/:email', verifyToken, async (req, res) => {
          const { email } = req.params;
          const result = await submissionsCollections.find({ worker_email: email, status: 'approved' }).toArray();
+         res.send(result);
+      })
+
+      // posting withdrawal request
+      // TODO: add admin middleware
+      app.post('/withdrawals', verifyToken, async (req, res) => {
+         const withdrawalData = req.body;
+         const result = await withdrawalsCollections.insertOne(withdrawalData);
          res.send(result);
       })
 
