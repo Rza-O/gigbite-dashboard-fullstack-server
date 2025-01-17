@@ -4,6 +4,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const morgan = require('morgan');
+const stripe = require('stripe')(process.env.PAYMENT_GATEWAY_SECRET)
 const app = express();
 const port = process.env.PORT || 8000;
 
@@ -310,7 +311,7 @@ async function run() {
 
       // getting all the submission that only is approved
       // TODO: add worker middleware
-      app.get('/approved-submission/:email', verifyToken, verifyWorker,async (req, res) => {
+      app.get('/approved-submission/:email', verifyToken, verifyWorker, async (req, res) => {
          const { email } = req.params;
          const result = await submissionsCollections.find({ worker_email: email, status: 'approved' }).toArray();
          res.send(result);
@@ -318,7 +319,7 @@ async function run() {
 
       // posting withdrawal request
       // TODO: add worker middleware
-      app.post('/withdrawals/:email', verifyToken, verifyWorker,async (req, res) => {
+      app.post('/withdrawals/:email', verifyToken, verifyWorker, async (req, res) => {
          const withdrawalData = req.body;
          const { email } = req.params;
          // TODO: do this operation when
@@ -329,6 +330,25 @@ async function run() {
          const result = await withdrawalsCollections.insertOne(withdrawalData);
          res.send(result);
       })
+
+      // Payment related apis
+
+      // Payment intent api
+      app.post('/create-payment-intent', verifyToken, async (req, res) => {
+         const { coins, price } = req.body;
+         console.log('this is body-> ', req.body)
+         const paymentIntent = await stripe.paymentIntents.create({
+            amount: price * 100,
+            currency: 'usd',
+            payment_method_types: ['card'],
+            description: `${coins} Coins Purchased`
+         })
+         console.log('this is secret=> ', paymentIntent.client_secret)
+         res.send({ clientSecret: paymentIntent.client_secret });
+      })
+
+
+
 
 
 
