@@ -157,6 +157,17 @@ async function run() {
          const { id } = req.params;
          const { email } = req.decoded;
          const filter = { _id: new ObjectId(id) };
+
+         // isn't letting delete the ask util there's no pending submission with same taskId
+         const pendingSubmission = await submissionsCollections.findOne({
+            taskId: id,
+            status: 'pending'
+         })
+         
+         if (pendingSubmission) {
+            return res.status(400).send({ message: 'Please review all submissions related to this task before deleting'})
+         }
+
          const taskData = await tasksCollections.findOne(filter);
          console.log(taskData)
          const totalCost = taskData.totalCost;
