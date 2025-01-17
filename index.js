@@ -67,7 +67,16 @@ async function run() {
          )
       }
 
-      
+      // Verify Admin middleware
+      const verifyAdmin = async (req, res, next) => {
+         const email = req.decoded?.email;
+         const query = { email };
+         const result = await usersCollections.findOne(query);
+         if (!result || result?.role === 'admin') {
+            return res.status(403).send({ message: "Forbidden Access" });
+         }
+         next();
+      }
 
       // Verify buyer middleware
       const verifyBuyer = async (req, res, next) => {
@@ -75,7 +84,7 @@ async function run() {
          const query = { email };
          const result = await usersCollections.findOne(query);
          if (!result || result?.role !== 'buyer') {
-            return res.status(403).send({message: 'Forbidden Access'})
+            return res.status(403).send({ message: 'Forbidden Access' })
          }
          next();
       }
