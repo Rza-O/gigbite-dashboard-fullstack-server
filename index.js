@@ -89,6 +89,17 @@ async function run() {
          next();
       }
 
+      // Verify worker middleware
+      const verifyWorker = async (req, res, next) => {
+         const email = req.decoded?.email;
+         const query = { email };
+         const result = await usersCollections.findOne(query);
+         if (!result || result?.role !== 'worker') {
+            return res.status(403).send({ message: 'Forbidden Access' })
+         }
+         next();
+      }
+
 
 
       // posting single user data to the db if doesn't exist
@@ -114,7 +125,6 @@ async function run() {
       })
 
       // getting specific user data 
-      // TODO: Add admin verification here
       app.get('/user/:email', verifyToken, async (req, res) => {
          const { email } = req.params;
          const result = await usersCollections.findOne({ email });
@@ -126,7 +136,7 @@ async function run() {
 
       // add task api
       // TODO: add buyer verification middleware
-      app.post('/task', verifyToken, async (req, res) => {
+      app.post('/task', verifyToken, verifyBuyer, async (req, res) => {
          const taskInfo = req.body;
          const email = req.decoded.email;
          const filter = { email };
@@ -139,14 +149,14 @@ async function run() {
 
       // get all tasks where required worker gt 1
       // TODO: add worker middleware
-      app.get('/tasks', verifyToken, async (req, res) => {
+      app.get('/tasks', verifyToken, verifyWorker, async (req, res) => {
          const result = await tasksCollections.find({ required_workers: { $gt: 0 } }).toArray();
          res.send(result);
       })
 
       // getting single task details by id
       // add worker middleware
-      app.get('/task/:id', async (req, res) => {
+      app.get('/task/:id', verifyToken, verifyWorker, async (req, res) => {
          const { id } = req.params;
          const filter = { _id: new ObjectId(id) };
          const result = await tasksCollections.findOne(filter);
@@ -155,7 +165,7 @@ async function run() {
 
       // getting all tasks added by a single user
       // TODO: add buyer middleware
-      app.get('/tasks/:email', verifyToken, async (req, res) => {
+      app.get('/tasks/:email', verifyToken, verifyBuyer, async (req, res) => {
          const { email } = req.params;
          const filter = { 'buyer.buyer_email': email }
          const result = await tasksCollections.find(filter).toArray();
@@ -164,7 +174,7 @@ async function run() {
 
       // update a single task
       // TODO: Add buyer middleware
-      app.patch('/task/:id', verifyToken, async (req, res) => {
+      app.patch('/task/:id', verifyToken, verifyBuyer, async (req, res) => {
          const { id } = req.params;
          const filter = { _id: new ObjectId(id) };
          const updateData = req.body;
@@ -176,8 +186,8 @@ async function run() {
 
       // delete a task
       // TODO: have to implement coin for already submitted works
-      // TODO: Add buyer and admin middleware
-      app.delete('/task/:id', verifyToken, async (req, res) => {
+      // TODO: Add buyer
+      app.delete('/task/:id', verifyToken, verifyBuyer, async (req, res) => {
          const { id } = req.params;
          const { email } = req.decoded;
          const filter = { _id: new ObjectId(id) };
@@ -207,7 +217,7 @@ async function run() {
 
       // Submission save to the database
       // TODO: ADD worker middleware
-      app.post('/work-submit', verifyToken, async (req, res) => {
+      app.post('/work-submit', verifyToken, verifyWorker, async (req, res) => {
          const submissionData = req.body;
          const { taskId } = submissionData;
          const option = { _id: new ObjectId(taskId) }
@@ -221,7 +231,7 @@ async function run() {
 
       // Getting all the submissions made by a user
       // TODO: add worker middleware
-      app.get('/my-submissions/:email', verifyToken, async (req, res) => {
+      app.get('/my-submissions/:email', verifyToken, verifyWorker, async (req, res) => {
          const { email } = req.params;
          const filter = { worker_email: email };
          const result = await submissionsCollections.find(filter).toArray();
@@ -231,7 +241,7 @@ async function run() {
 
       // Getting all submission for a buyers work
       // TODO: add buyer middleware
-      app.get('/my-work/submissions/:email', verifyToken, async (req, res) => {
+      app.get('/my-work/submissions/:email', verifyToken, verifyBuyer, async (req, res) => {
          const { email } = req.params;
          const filter = { buyer_email: email, status: 'pending' };
          const result = await submissionsCollections.find(filter).toArray();
@@ -240,7 +250,7 @@ async function run() {
 
       // Changing status to approved and rejected
       // TODO: Add Buyer middleWare
-      app.patch('/submission/status/:id', verifyToken, async (req, res) => {
+      app.patch('/submission/status/:id', verifyToken, verifyBuyer, async (req, res) => {
          const { status } = req.body;
          const { id } = req.params;
          const filter = { _id: new ObjectId(id) };
@@ -278,7 +288,7 @@ async function run() {
 
       // Getting worker dashboard stats
       // TODO: add worker middleware
-      app.get('/worker-dashboard/stats/:email', verifyToken, async (req, res) => {
+      app.get('/worker-dashboard/stats/:email', verifyToken, verifyWorker, async (req, res) => {
          const { email } = req.params;
          const totalSubmission = await submissionsCollections.countDocuments({ worker_email: email });
          const pendingSubmission = await submissionsCollections.countDocuments({
@@ -300,7 +310,7 @@ async function run() {
 
       // getting all the submission that only is approved
       // TODO: add worker middleware
-      app.get('/approved-submission/:email', verifyToken, async (req, res) => {
+      app.get('/approved-submission/:email', verifyToken, verifyWorker,async (req, res) => {
          const { email } = req.params;
          const result = await submissionsCollections.find({ worker_email: email, status: 'approved' }).toArray();
          res.send(result);
@@ -308,7 +318,7 @@ async function run() {
 
       // posting withdrawal request
       // TODO: add worker middleware
-      app.post('/withdrawals/:email', verifyToken, async (req, res) => {
+      app.post('/withdrawals/:email', verifyToken, verifyWorker,async (req, res) => {
          const withdrawalData = req.body;
          const { email } = req.params;
          // TODO: do this operation when
