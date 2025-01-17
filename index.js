@@ -34,6 +34,7 @@ async function run() {
       const tasksCollections = client.db('GigBite').collection('tasks');
       const submissionsCollections = client.db('GigBite').collection('submissions');
       const withdrawalsCollections = client.db('GigBite').collection('withdrawals');
+      const paymentsCollections = client.db('GigBite').collection('payments');
 
       app.get('/users', async (req, res) => {
          const result = await usersCollections.find().toArray();
@@ -334,7 +335,7 @@ async function run() {
       // Payment related apis
 
       // Payment intent api
-      app.post('/create-payment-intent', verifyToken, async (req, res) => {
+      app.post('/create-payment-intent', verifyToken, verifyBuyer, async (req, res) => {
          const { coins, price } = req.body;
          console.log('this is body-> ', req.body)
          const paymentIntent = await stripe.paymentIntents.create({
@@ -343,10 +344,23 @@ async function run() {
             payment_method_types: ['card'],
             description: `${coins} Coins Purchased`
          })
+         console.log(paymentIntent)
          console.log('this is secret=> ', paymentIntent.client_secret)
          res.send({ clientSecret: paymentIntent.client_secret });
       })
 
+      // saving payment data to the db
+      app.post('/save-payment', verifyToken, verifyBuyer, async (req, res) => {
+         const paymentData = req.body;
+         const { email, coins } = paymentData;
+         const result = await paymentsCollections.insertOne(paymentData);
+
+         // updating user coin
+         const updateCoin = await usersCollections.updateOne({ email }, {
+            $inc: { coin: parseInt(coins) }
+         })
+         res.send([result, updateCoin]);
+      })
 
 
 
