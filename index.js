@@ -67,6 +67,20 @@ async function run() {
          )
       }
 
+      
+
+      // Verify buyer middleware
+      const verifyBuyer = async (req, res, next) => {
+         const email = req.decoded?.email;
+         const query = { email };
+         const result = await usersCollections.findOne(query);
+         if (!result || result?.role !== 'buyer') {
+            return res.status(403).send({message: 'Forbidden Access'})
+         }
+         next();
+      }
+
+
 
       // posting single user data to the db if doesn't exist
       app.post('/users/:email', async (req, res) => {
@@ -288,6 +302,7 @@ async function run() {
       app.post('/withdrawals/:email', verifyToken, async (req, res) => {
          const withdrawalData = req.body;
          const { email } = req.params;
+         // TODO: do this operation when
          const increaseCoin = await usersCollections.updateOne({ email }, {
             $inc: { coin: -withdrawalData.withdrawal_coin }
          })
