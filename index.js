@@ -222,7 +222,7 @@ async function run() {
       // TODO: ADD worker middleware
       app.post('/work-submit', verifyToken, verifyWorker, async (req, res) => {
          const submissionData = req.body;
-         const { taskId } = submissionData;
+         const { taskId, task_title, buyer_name, buyer_email } = submissionData;
          const option = { _id: new ObjectId(taskId) }
          const workerDecrement = await tasksCollections.updateOne(option, {
             $inc: { required_workers: -1 }
@@ -231,8 +231,14 @@ async function run() {
          const result = await submissionsCollections.insertOne(submissionData);
 
          // sending a notification to the notification collection
-
-
+         const notification = {
+            message: `You have submission request from ${buyer_name} for ${task_title}`,
+            toEmail: buyer_email,
+            actionRoute: '/dashboard',
+            time: new Date(),
+            status: 'unread'
+         }
+         await notificationCollections.insertOne(notification);
 
          res.send(result);
       })
@@ -443,14 +449,25 @@ async function run() {
          const filter = { _id: new ObjectId(id) };
 
          const withdrawalRequestData = await withdrawalsCollections.findOne(filter);
-         const { worker_email, withdrawal_coin } = withdrawalRequestData;
-         const updateUserCoin = await usersCollections.updateOne({ email: worker_email }, {
+         const { worker_email, withdrawal_coin,
+            withdrawal_amount } = withdrawalRequestData;
+         await usersCollections.updateOne({ email: worker_email }, {
             $inc: { coin: -withdrawal_coin }
          });
-         console.log(updateUserCoin)
+         // console.log(updateUserCoin)
          const result = await withdrawalsCollections.updateOne(filter, {
             $set: { status: 'approved' }
          });
+
+         //sending notification after successfully approving withdrawal 
+         const notification = {
+            message: `Your request of ${withdrawal_amount}$ has been approved by admin`,
+            toEmail: worker_email,
+            actionRoute: '/dashboard/withdrawals',
+            time: new Date(),
+            status: 'unread'
+         }
+         await notificationCollections.insertOne(notification);
          res.send(result)
       })
 
@@ -479,6 +496,7 @@ async function run() {
          res.send(result);
       })
 
+      // getting all the notification for a specific user
       app.get('/notifications/:email', verifyToken, async (req, res) => {
          const { email } = req.params;
          const notification = await notificationCollections
@@ -488,6 +506,15 @@ async function run() {
          res.send(notification);
       })
 
+      // patching notification mark as read end point
+      app.patch('/notifications/read/:id', verifyToken, async (req, res) => {
+         const { id } = req.params;
+         const filter = { _id: new ObjectId(id) }
+         const result = await notificationCollections.updateOne(filter, {
+            $set: { status: 'read' }
+         });
+         res.send(result);
+      })
 
 
 
