@@ -413,7 +413,15 @@ async function run() {
          res.send(result)
       })
 
-      
+      // delete a specific users
+      app.delete('/admin/users/:id', verifyToken, verifyAdmin, async (req, res) => {
+         const { id } = req.params;
+         const query = {_id: new ObjectId(id)}
+         const result = await usersCollections.deleteOne(query);
+         res.send(result);
+      })
+
+      // update users
 
 
 
