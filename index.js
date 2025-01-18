@@ -416,12 +416,21 @@ async function run() {
       // delete a specific users
       app.delete('/admin/users/:id', verifyToken, verifyAdmin, async (req, res) => {
          const { id } = req.params;
-         const query = {_id: new ObjectId(id)}
+         const query = { _id: new ObjectId(id) }
          const result = await usersCollections.deleteOne(query);
          res.send(result);
       })
 
-      // update users
+      // update a specific user
+      app.patch('/admin/users/:id', verifyToken, verifyAdmin, async (req, res) => {
+         const { id } = req.params;
+         const { role } = req.body;
+         const query = { _id: new ObjectId(id) };
+         const result = await usersCollections.updateOne(query, {
+            $set: { role }
+         });
+         res.send(result);
+      })
 
 
 
