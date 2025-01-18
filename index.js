@@ -407,6 +407,15 @@ async function run() {
          res.send(result)
       })
 
+      // fetch all users
+      app.get('/admin/users', verifyToken, verifyAdmin, async (req, res) => {
+         const result = await usersCollections.find().toArray();
+         res.send(result)
+      })
+
+      
+
+
 
 
 
