@@ -74,7 +74,7 @@ async function run() {
          const email = req.decoded?.email;
          const query = { email };
          const result = await usersCollections.findOne(query);
-         if (!result || result?.role === 'admin') {
+         if (!result || result?.role !== 'admin') {
             return res.status(403).send({ message: "Forbidden Access" });
          }
          next();
@@ -362,6 +362,27 @@ async function run() {
          res.send([result, updateCoin]);
       })
 
+      // payment history for a single buyer
+      app.get('/payment-history/:email', verifyToken, verifyBuyer, async (req, res) => {
+         const { email } = req.params;
+         const result = await paymentsCollections.find({ email }).toArray();
+         res.send(result);
+      })
+
+
+      // admin Stats
+      app.get('/admin-stats', verifyToken, verifyAdmin,async (req, res) => {
+         const totalWorker = await usersCollections.countDocuments({ role: 'worker' });
+         const totalBuyer = await usersCollections.countDocuments({ role: 'buyer' });
+         const totalAvailableCoins = await usersCollections.aggregate([
+            {
+               $group: {_id: null, totalCoin: {$sum: '$coin'}}
+            }
+         ]).toArray();
+         const totalPayment = await paymentsCollections.countDocuments();
+         const totalWithdrawals = await withdrawalsCollections.countDocuments({ status: 'approved' });
+         res.send({ totalWorker, totalBuyer, totalAvailableCoin: totalAvailableCoins[0].totalCoin, totalWithdrawals, totalPayment})
+      })
 
 
 
