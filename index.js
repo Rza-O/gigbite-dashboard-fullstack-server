@@ -35,6 +35,7 @@ async function run() {
       const submissionsCollections = client.db('GigBite').collection('submissions');
       const withdrawalsCollections = client.db('GigBite').collection('withdrawals');
       const paymentsCollections = client.db('GigBite').collection('payments');
+      const notificationCollections = client.db('GigBite').collection('notification');
 
       app.get('/users', async (req, res) => {
          const result = await usersCollections.find().toArray();
@@ -226,8 +227,13 @@ async function run() {
          const workerDecrement = await tasksCollections.updateOne(option, {
             $inc: { required_workers: -1 }
          });
-         console.log(workerDecrement)
+         
          const result = await submissionsCollections.insertOne(submissionData);
+
+         // sending a notification to the notification collection
+         
+
+
          res.send(result);
       })
 
@@ -277,30 +283,53 @@ async function run() {
 
          // find the doc to update
          const submissionData = await submissionsCollections.findOne(filter);
+
          // now change the total cost, add coin and status change if status is 'approved'
          if (submissionData) {
-            const { taskId, payable_amount, worker_email } = submissionData;
+            const { taskId, payable_amount, worker_email, task_title, buyer_name } = submissionData;
+
             // update status in the submission collection
             await submissionsCollections.updateOne(filter, {
                $set: { status }
             })
+
             if (status === 'approved') {
                // decreasing the total cost so that when task deleted i can easily add the total cost back to the buyer coin
                await tasksCollections.updateOne(
                   { _id: new ObjectId(taskId) },
                   { $inc: { totalCost: -payable_amount } }
                );
+
                // adding the payable coin to the worker total coin
                await usersCollections.updateOne(
                   { email: worker_email },
                   { $inc: { coin: payable_amount } }
                );
+
+               // adding a notification to the notification collection
+               const notification = {
+                  message: `You have earned ${payable_amount} coins from ${buyer_name} for ${task_title}`,
+                  toEmail: worker_email,
+                  actionRoute: '/dashboard/my-submissions',
+                  time: new Date(),
+                  status: 'unread'
+               }
+               await notificationCollections.insertOne(notification);
             } else if (status === 'rejected') {
                // increasing required worker by 1 in task collection
                await tasksCollections.updateOne(
                   { _id: new ObjectId(taskId) },
                   { $inc: { required_workers: 1 } }
                )
+               // sending notification to notification collection for rejection of work
+               const notification = {
+                  message: `Your submission for ${task_title} was rejected by ${buyer_name}`,
+                  toEmail: worker_email,
+                  actionRoute: '/dashboard/my-submissions',
+                  time: new Date(),
+                  status: 'unread'
+               }
+               await notificationCollections.insertOne(notification);
             }
          }
          res.send({ message: 'Submission status updated' })
