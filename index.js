@@ -235,10 +235,28 @@ async function run() {
       // TODO: add worker middleware
       app.get('/my-submissions/:email', verifyToken, verifyWorker, async (req, res) => {
          const { email } = req.params;
+         const { page = 1, limit = 5 } = req.query;
+
+         const currentPage = parseInt(page);
+         const itemsPerPage = parseInt(limit);
+         const skip = (currentPage - 1) * itemsPerPage;
+
          const filter = { worker_email: email };
-         const result = await submissionsCollections.find(filter).toArray();
-         console.log(result)
-         res.send(result);
+         const submissions = await submissionsCollections
+            .find(filter)
+            .skip(skip)
+            .limit(itemsPerPage)
+            .toArray();
+         
+         const totalSubmissions = await submissionsCollections.countDocuments(filter);
+         const totalPages = Math.ceil(totalSubmissions / itemsPerPage);
+
+         res.send({
+            submissions,
+            totalSubmissions,
+            currentPage,
+            totalPages,
+         });
       })
 
       // Getting all submission for a buyers work
