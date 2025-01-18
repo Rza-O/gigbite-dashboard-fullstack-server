@@ -227,11 +227,11 @@ async function run() {
          const workerDecrement = await tasksCollections.updateOne(option, {
             $inc: { required_workers: -1 }
          });
-         
+
          const result = await submissionsCollections.insertOne(submissionData);
 
          // sending a notification to the notification collection
-         
+
 
 
          res.send(result);
@@ -253,7 +253,7 @@ async function run() {
             .skip(skip)
             .limit(itemsPerPage)
             .toArray();
-         
+
          const totalSubmissions = await submissionsCollections.countDocuments(filter);
          const totalPages = Math.ceil(totalSubmissions / itemsPerPage);
 
@@ -477,6 +477,15 @@ async function run() {
             $set: { role }
          });
          res.send(result);
+      })
+
+      app.get('/notifications/:email', verifyToken, async (req, res) => {
+         const { email } = req.params;
+         const notification = await notificationCollections
+            .find({ toEmail: email })
+            .sort({ time: -1 })
+            .toArray();
+         res.send(notification);
       })
 
 
