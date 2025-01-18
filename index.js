@@ -322,12 +322,12 @@ async function run() {
       // TODO: add worker middleware
       app.post('/withdrawals/:email', verifyToken, verifyWorker, async (req, res) => {
          const withdrawalData = req.body;
-         const { email } = req.params;
+         // const { email } = req.params;
          // TODO: do this operation when
-         const increaseCoin = await usersCollections.updateOne({ email }, {
-            $inc: { coin: -withdrawalData.withdrawal_coin }
-         })
-         console.log(increaseCoin)
+         // const increaseCoin = await usersCollections.updateOne({ email }, {
+         //    $inc: { coin: -withdrawalData.withdrawal_coin }
+         // })
+         // console.log(increaseCoin)
          const result = await withdrawalsCollections.insertOne(withdrawalData);
          res.send(result);
       })
@@ -371,17 +371,40 @@ async function run() {
 
 
       // admin Stats
-      app.get('/admin-stats', verifyToken, verifyAdmin,async (req, res) => {
+      app.get('/admin-stats', verifyToken, verifyAdmin, async (req, res) => {
          const totalWorker = await usersCollections.countDocuments({ role: 'worker' });
          const totalBuyer = await usersCollections.countDocuments({ role: 'buyer' });
          const totalAvailableCoins = await usersCollections.aggregate([
             {
-               $group: {_id: null, totalCoin: {$sum: '$coin'}}
+               $group: { _id: null, totalCoin: { $sum: '$coin' } }
             }
          ]).toArray();
          const totalPayment = await paymentsCollections.countDocuments();
          const totalWithdrawals = await withdrawalsCollections.countDocuments({ status: 'approved' });
-         res.send({ totalWorker, totalBuyer, totalAvailableCoin: totalAvailableCoins[0].totalCoin, totalWithdrawals, totalPayment})
+         res.send({ totalWorker, totalBuyer, totalAvailableCoin: totalAvailableCoins[0].totalCoin || 0, totalWithdrawals, totalPayment })
+      })
+
+      // getting all the withdrawal requests
+      app.get('/admin/withdrawal-requests', verifyToken, verifyAdmin, async (req, res) => {
+         const result = await withdrawalsCollections.find({ status: 'pending' }).toArray();
+         res.send(result);
+      })
+
+      // changing the status of withdrawals and decreasing coin from the worker
+      app.patch('/admin/approval/:id', verifyToken, verifyAdmin, async (req, res) => {
+         const { id } = req.params;
+         const filter = { _id: new ObjectId(id) };
+
+         const withdrawalRequestData = await withdrawalsCollections.findOne(filter);
+         const { worker_email, withdrawal_coin } = withdrawalRequestData;
+         const updateUserCoin = await usersCollections.updateOne({ email: worker_email }, {
+            $inc: { coin: -withdrawal_coin }
+         });
+         console.log(updateUserCoin)
+         const result = await withdrawalsCollections.updateOne(filter, {
+            $set: { status: 'approved' }
+         });
+         res.send(result)
       })
 
 
