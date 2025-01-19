@@ -133,6 +133,7 @@ async function run() {
          const result = await usersCollections.findOne({ email });
          res.send(result);
       })
+      
 
 
       // task related apis
@@ -171,7 +172,7 @@ async function run() {
       app.get('/tasks/:email', verifyToken, verifyBuyer, async (req, res) => {
          const { email } = req.params;
          const filter = { 'buyer.buyer_email': email }
-         const result = await tasksCollections.find(filter).toArray();
+         const result = await tasksCollections.find(filter).sort({ deadline: -1}).toArray();
          res.send(result);
       })
 
@@ -531,7 +532,7 @@ async function run() {
 
       // Getting Best workers
       app.get('/best-workers', async (req, res) => {
-         const result = await usersCollections.find({}, {
+         const result = await usersCollections.find({role: "worker"}, {
             projection: {name: 1, image: 1, coin: 1, _id: 0}
          }).sort({coin: -1}).limit(6).toArray();
          res.send(result);
@@ -544,7 +545,7 @@ async function run() {
       // await client.connect();
       // Send a ping to confirm a successful connection
       // await client.db("admin").command({ ping: 1 });
-      console.log("Pinged your deployment. You successfully connected to MongoDB!");
+      // console.log("Pinged your deployment. You successfully connected to MongoDB!");
    } finally {
       // Ensures that the client will close when you finish/error
       // await client.close();
