@@ -219,6 +219,35 @@ async function run() {
          res.send(result);
       })
 
+      // Getting buyer dashboard stats
+      app.get('/buyer-dashboard/stats/:email',  async (req, res) => {
+         const { email } = req.params;
+         // getting all the task added by a buyer
+         const query = {'buyer.buyer_email' : email}
+         const totalAddedTask = await tasksCollections.countDocuments(query);
+
+         // getting all the pending tasks
+         const pendingWorkersData = await tasksCollections.aggregate([
+            { $match: query },
+            { $group: { _id: null, pendingWorkers: { $sum: "$required_workers" } } },
+         ]).toArray();
+         const pendingWorkerCount = pendingWorkersData[0]?.pendingWorkers || 0;
+
+         // total payment made by a user
+         const paymentQuery = { email };
+         const totalPaymentsData = await paymentsCollections.aggregate([
+            { $match: paymentQuery },
+            { $group: { _id: null, totalPaid: { $sum: {$toInt: '$price'} } } },
+         ]).toArray();
+         const totalPaid = totalPaymentsData[0]?.totalPaid || 0;
+
+         res.send({
+            totalAddedTask,
+            pendingWorkerCount,
+            totalPaid
+         })
+      })
+
       // Submission save to the database
       // TODO: ADD worker middleware
       app.post('/work-submit', verifyToken, verifyWorker, async (req, res) => {
