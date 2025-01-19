@@ -477,11 +477,24 @@ async function run() {
          res.send(result)
       })
 
+      // Fetch all tasks
+      app.get('/admin/tasks', verifyToken, verifyAdmin, async (req, res) => {
+         const result = await tasksCollections.find().toArray();
+         res.send(result)
+      })
+
       // delete a specific users
       app.delete('/admin/users/:id', verifyToken, verifyAdmin, async (req, res) => {
          const { id } = req.params;
          const query = { _id: new ObjectId(id) }
          const result = await usersCollections.deleteOne(query);
+         res.send(result);
+      })
+      // delete a specific tasks
+      app.delete('/admin/tasks/:id', verifyToken, verifyAdmin, async (req, res) => {
+         const { id } = req.params;
+         const query = { _id: new ObjectId(id) }
+         const result = await tasksCollections.deleteOne(query);
          res.send(result);
       })
 
@@ -513,6 +526,14 @@ async function run() {
          const result = await notificationCollections.updateOne(filter, {
             $set: { status: 'read' }
          });
+         res.send(result);
+      })
+
+      // Getting Best workers
+      app.get('/best-workers', async (req, res) => {
+         const result = await usersCollections.find({}, {
+            projection: {name: 1, image: 1, coin: 1, _id: 0}
+         }).sort({coin: -1}).limit(6).toArray();
          res.send(result);
       })
 
