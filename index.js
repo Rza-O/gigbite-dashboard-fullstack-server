@@ -37,7 +37,7 @@ async function run() {
       const paymentsCollections = client.db('GigBite').collection('payments');
       const notificationCollections = client.db('GigBite').collection('notification');
 
-      app.get('/users', verifyToken, async (req, res) => {
+      app.get('/users', async (req, res) => {
          const result = await usersCollections.find().toArray();
          res.send(result);
       })
