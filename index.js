@@ -37,7 +37,7 @@ async function run() {
       const paymentsCollections = client.db('GigBite').collection('payments');
       const notificationCollections = client.db('GigBite').collection('notification');
 
-      app.get('/users', async (req, res) => {
+      app.get('/users', verifyToken, async (req, res) => {
          const result = await usersCollections.find().toArray();
          res.send(result);
       })
@@ -133,7 +133,7 @@ async function run() {
          const result = await usersCollections.findOne({ email });
          res.send(result);
       })
-      
+
 
 
       // task related apis
@@ -172,7 +172,7 @@ async function run() {
       app.get('/tasks/:email', verifyToken, verifyBuyer, async (req, res) => {
          const { email } = req.params;
          const filter = { 'buyer.buyer_email': email }
-         const result = await tasksCollections.find(filter).sort({ deadline: -1}).toArray();
+         const result = await tasksCollections.find(filter).sort({ deadline: -1 }).toArray();
          res.send(result);
       })
 
@@ -220,10 +220,10 @@ async function run() {
       })
 
       // Getting buyer dashboard stats
-      app.get('/buyer-dashboard/stats/:email',  async (req, res) => {
+      app.get('/buyer-dashboard/stats/:email', async (req, res) => {
          const { email } = req.params;
          // getting all the task added by a buyer
-         const query = {'buyer.buyer_email' : email}
+         const query = { 'buyer.buyer_email': email }
          const totalAddedTask = await tasksCollections.countDocuments(query);
 
          // getting all the pending tasks
@@ -237,7 +237,7 @@ async function run() {
          const paymentQuery = { email };
          const totalPaymentsData = await paymentsCollections.aggregate([
             { $match: paymentQuery },
-            { $group: { _id: null, totalPaid: { $sum: {$toInt: '$price'} } } },
+            { $group: { _id: null, totalPaid: { $sum: { $toInt: '$price' } } } },
          ]).toArray();
          const totalPaid = totalPaymentsData[0]?.totalPaid || 0;
 
@@ -561,9 +561,9 @@ async function run() {
 
       // Getting Best workers
       app.get('/best-workers', async (req, res) => {
-         const result = await usersCollections.find({role: "worker"}, {
-            projection: {name: 1, image: 1, coin: 1, _id: 0}
-         }).sort({coin: -1}).limit(6).toArray();
+         const result = await usersCollections.find({ role: "worker" }, {
+            projection: { name: 1, image: 1, coin: 1, _id: 0 }
+         }).sort({ coin: -1 }).limit(6).toArray();
          res.send(result);
       })
 
