@@ -134,6 +134,16 @@ async function run() {
          res.send(result);
       })
 
+      // Updating user data
+      app.patch('/user/:email', verifyToken, async (req, res) => {
+         const { email } = req.params;
+         const updatedData = req.body;
+         const result = await usersCollections.updateOne(
+            { email },
+            { $set: updatedData }
+         );
+         res.send(result);
+      });
 
 
       // task related apis
