@@ -164,9 +164,21 @@ async function run() {
       // get all tasks where required worker gt 1
       // TODO: add worker middleware
       app.get('/tasks', verifyToken, verifyWorker, async (req, res) => {
-         const result = await tasksCollections.find({ required_workers: { $gt: 0 } }).toArray();
+         const { sort } = req.query;
+         let sortOption = {};
+
+         if (sort === 'asc') {
+            sortOption = {
+               payable_amount: 1 };  
+         } else if (sort === 'desc') {
+            sortOption = {
+               payable_amount: -1 }; 
+         }
+
+         const result = await tasksCollections.find({ required_workers: { $gt: 0 } }).sort(sortOption).toArray();
          res.send(result);
-      })
+      });
+
 
       // getting single task details by id
       // add worker middleware
